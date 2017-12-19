@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+'''
+This is a base file for managing the f5 BIGIP devices for Release engineering and Ops
+'''
 
 import pycontrol as pc
 import sys
@@ -8,16 +11,50 @@ import netrc
 import base64
 import platform
 
+'''
+Name: enablePoolMembers()
+Purpose: Enables all pool members of "poolName"
+Inputs:
+ - thePool: bigIP.LocalLB.PoolMember
+		For API docs please see: https://devcentral.f5.com/wiki/iControl.LocalLB__PoolMember.ashx
+		NOTE: We're using f5 v9 of the API so  bigIP::LocalLB::Pool is NOT a valid type
+ - poolName: The name of the pool. e.g.: Pool_Customizer
+Output: N/A
+Notes:
+'''
 def enablePoolMembers(thePool, poolName):
 	poolStats = thePool.get_all_statistics([poolName])
 	for pool_member in poolStats[0].statistics:
 		enableMember(thePool, poolName, pool_member)
 
+'''
+Name: disablePoolMembers()
+Purpose: disables all pool members of "poolName"
+Inputs:
+ - thePool: bigIP.LocalLB.PoolMember
+		For API docs please see: https://devcentral.f5.com/wiki/iControl.LocalLB__PoolMember.ashx
+		NOTE: We're using f5 v9 of the API so  bigIP::LocalLB::Pool is NOT a valid type
+ - poolName: The name of the pool. e.g.: Pool_Customizer
+Output: N/A
+Notes:
+'''
 def disablePoolMembers(thePool, poolName):
 	poolStats = thePool.get_all_statistics([poolName])
 	for pool_member in poolStats[0].statistics:
 		disableMember(thePool, poolName, pool_member)
 
+'''
+Name: enableMember()
+Purpose: enables a single pool member of "poolName"
+Inputs:
+ - thePool: bigIP.LocalLB.PoolMember
+		For API docs please see: https://devcentral.f5.com/wiki/iControl.LocalLB__PoolMember.ashx
+		NOTE: We're using f5 v9 of the API so  bigIP::LocalLB::Pool is NOT a valid type
+ - poolName: The name of the pool. e.g.: Pool_Customizer
+ - poolMember: The Common::IPPortDefinition structure that contains info about the member being enabled
+Output: N/A
+Notes:
+'''
 def enableMember(thePool, poolName, poolMember):
 	enabled_state = thePool.typefactory.create('LocalLB.PoolMember.MemberSessionState')
 	enabled_state.session_state = 'STATE_ENABLED'
@@ -37,6 +74,18 @@ def enableMember(thePool, poolName, poolMember):
 	except Exception, ex:
 		print "enableMember(): Generic error, %s" % ex
 
+'''
+Name: disableMember()
+Purpose: disables a single pool member of "poolName"
+Inputs:
+ - thePool: bigIP.LocalLB.PoolMember
+		For API docs please see: https://devcentral.f5.com/wiki/iControl.LocalLB__PoolMember.ashx
+		NOTE: We're using f5 v9 of the API so  bigIP::LocalLB::Pool is NOT a valid type
+ - poolName: The name of the pool. e.g.: Pool_Customizer
+ - poolMember: The Common::IPPortDefinition structure that contains info about the member being enabled
+Output: N/A
+Notes:
+'''
 def disableMember(thePool, poolName, poolMember):
 	enabled_state = thePool.typefactory.create('LocalLB.PoolMember.MemberSessionState')
 	enabled_state.session_state = 'STATE_DISABLE'
@@ -115,61 +164,3 @@ def getVirtualPoolMemberStatus(virtServer, thePool, poolName, dumpToFile = False
 		# close the file if we have one open
 		if dumpToFile:
 			vpoolFObj.close();
-
-if __name__ == "__main__":
-
-	#===============
-	# System Checks
-	#===============
-	if pc.__version__ >= '2.0':
-		pass
-	else:
-		print "Requires pycontrol version 2.x!"
-		sys.exit()
-	if len(sys.argv) < 2: # BUG 01 - lack of arg throws out of range error instead of triggering usage message
-		print "Usage %s poolname member ENV" % sys.argv[0]
-		print "ENV is environment and is limited to DEVQA, STAGE, or PROD"
-		sys.exit()
-
-	#=======================
-	# Get ARGVS and Options
-	#=======================
-	poolName = argv[1]
-	ENV = argv[2]
-	
-	if argv[3] == "True":
-		enablePoolMember = True
-	else:
-		enablePoolMember = False
-
-	if ENV == 'PROD':
-		env = 'xxx.xxx.xxx'
-		pword = ''
-	elif ENV == 'STAGE':
-		env = 'xxx.xxx.xxx'
-		pword = ''
-	elif ENV == 'DEVQA':
-		env = 'xxx.xxx.xx.xxx'
-		pword = ''
-	hostenv = 'ltm001.%s' % env
-	user = 'hub'
-		
-	#=============================
-	# Create BIGIP Obj
-	#=============================
-	bigIP = pc.BIGIP(
-		hostname = hostenv,
-		username = user,
-		password = pword,
-		fromurl = True,
-		wsdls = ['LocalLB.VirtualServer', 'LocalLB.PoolMember']
-		)
-
-	# ==== Global Variables ====
-	virt_Server = bigIP.LocalLB.VirtualServer
-	thePool = bigIP.LocalLB.PoolMember
-
-	if enablePoolMember:
-		enablePoolMembers(thePool, poolName)
-	else:
-		disablePoolMembers(thePool, poolName);
