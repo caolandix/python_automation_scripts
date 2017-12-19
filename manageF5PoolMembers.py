@@ -1,13 +1,6 @@
 #!/usr/bin/python
-'''
-[12:18 PM] Van Johnson: basically it is:
-identify a pair of instances form each pool
-force offline the members 
-wait for the drain or wait a 5 minute grace period if they don't dreain in a reasonable time
-update the members
-test the members
-[12:19 PM] Van Johnson: put back in pool, slect next set
-'''
+
+
 import pycontrol as pc
 import sys
 from sys import argv
